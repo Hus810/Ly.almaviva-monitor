@@ -21,13 +21,13 @@ const fetch = require("node-fetch");
     });
 
     // 3️⃣ الضغط على أيقونة تسجيل الدخول
-    const loginButton = await page.$x("//button[contains(., 'Login') or contains(., '👤')]");
-    if (loginButton.length) {
-      await loginButton[0].click();
-      await page.waitForTimeout(2000); // 2 ثانية انتظار للـ DOM
-    } else {
-      console.log("⚠️ أيقونة Login لم تُعثر عليها");
-    }
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")]
+        .find(el => el.innerText.includes("Login") || el.innerText.includes("👤"));
+      if (btn) btn.click();
+    });
+
+    await page.waitForTimeout(2000); // 2 ثانية انتظار للـ DOM
 
     // 4️⃣ الانتظار وكتابة الإيميل
     await page.waitForSelector('input[name="email"], input[placeholder*="Email"]', { timeout: 30000 });
@@ -59,7 +59,3 @@ const fetch = require("node-fetch");
     console.log("🛑 Bot finished normally");
 
   } catch (err) {
-    console.error("❌ Bot crashed:", err);
-    process.exit(1);
-  }
-})();

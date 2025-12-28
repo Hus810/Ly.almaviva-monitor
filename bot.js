@@ -14,33 +14,33 @@ const PASSWORD = process.env.PASSWORD;
 
   const page = await browser.newPage();
 
-  // 1️⃣ فتح الصفحة الرئيسية
+  // الصفحة الرئيسية
   await page.goto("https://ly.almaviva-visa.services/", {
     waitUntil: "networkidle2",
   });
 
-  // 2️⃣ الضغط على أيقونة تسجيل الدخول (login icon)
-  await page.waitForSelector("button.login-button"); // <-- استبدل هذا بالـ selector الصحيح
+  // الضغط على أيقونة تسجيل الدخول
+  await page.waitForSelector("button.login-button"); // <-- استبدل بالـ selector الصحيح
   await page.click("button.login-button");
 
-  // 3️⃣ انتظار ظهور الحقول بعد الضغط
+  // انتظار ظهور الحقول
   await page.waitForSelector("input#user_email", { timeout: 10000 });
   await page.type("input#user_email", EMAIL);
 
   await page.waitForSelector("input#user_password", { timeout: 10000 });
   await page.type("input#user_password", PASSWORD);
 
-  // 4️⃣ الضغط على زر تسجيل الدخول
+  // الضغط على زر تسجيل الدخول
   await page.waitForSelector("button[type=submit]");
   await page.click("button[type=submit]");
 
-  // 5️⃣ الانتظار حتى يتم الانتقال لصفحة المواعيد
+  // الانتقال لصفحة المواعيد
   await page.waitForNavigation({ waitUntil: "networkidle2" });
   await page.goto("https://ly.almaviva-visa.services/appointment", {
     waitUntil: "networkidle2",
   });
 
-  // 6️⃣ أخذ محتوى الصفحة وفحص مواعيد طرابلس
+  // فحص مواعيد طرابلس
   const content = await page.content();
   const tripoliAvailable =
     content.includes("Tripoli") &&
@@ -60,7 +60,7 @@ const PASSWORD = process.env.PASSWORD;
     console.log("❌ No Tripoli yet...");
   }
 
-  // 7️⃣ أخذ screenshot (اختياري للتأكد من ظهور الصفحة)
+  // Screenshot للتأكد
   await page.screenshot({ path: "page.png", fullPage: true });
 
   await browser.close();

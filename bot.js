@@ -5,16 +5,6 @@ const fetch = require("node-fetch");
   try {
     console.log("🚀 Bot starting...");
 
-    // رسالة تأكيد تشغيل
-    await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: process.env.CHAT_ID,
-        text: "🤖 Almaviva bot started"
-      })
-    });
-
     const browser = await puppeteer.launch({
       headless: "new",
       executablePath: "/usr/bin/chromium-browser",
@@ -24,15 +14,31 @@ const fetch = require("node-fetch");
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
 
-    console.log("✅ Browser launched successfully");
+    // 1️⃣ فتح الموقع
+    await page.goto("https://ly.almaviva-visa.services/appointment", {
+      waitUntil: "networkidle2"
+    });
 
-    // 👇 هنا لاحقًا نضيف:
-    // - login
-    // - check appointments
-    // - telegram alert
+    // 2️⃣ الضغط على أيقونة تسجيل الدخول (أعلى اليمين)
+    await page.waitForSelector('button, a', { timeout: 15000 });
+    await page.evaluate(() => {
+      [...document.querySelectorAll("button,a")]
+        .find(el => el.innerText.toLowerCase().includes("login") || el.innerText.includes("👤"))?.click();
+    });
 
+    // 3️⃣ إدخال الإيميل والباسوورد
+    await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+    await page.type('input[type="email"]', process.env.ALMA_EMAIL, { delay: 50 });
+    await page.type('input[type="password"]', process.env.ALMA_PASSWORD, { delay: 50 });
+
+    // 4️⃣ زر الدخول
+    await page.keyboard.press("Enter");
+    await page.waitForNavigation({ waitUntil: "networkidle2" });
+
+    console.log("✅ Logged in successfully");
+
+    // 👇 هنا الخطوة القادمة: اختيار المدينة
     await browser.close();
-    console.log("🛑 Bot finished normally");
 
   } catch (err) {
     console.error("❌ Bot crashed:", err);

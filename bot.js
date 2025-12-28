@@ -1,12 +1,9 @@
 const puppeteer = require("puppeteer");
 const fetch = require("node-fetch");
 
-(async () => {
-  const FAIL = async (msg) => {
-    console.error("❌", msg);
-    process.exit(1);
-  };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+(async () => {
   try {
     console.log("🚀 Bot starting...");
 
@@ -36,65 +33,45 @@ const fetch = require("node-fetch");
       if (btn) btn.click();
     });
 
-    await page.waitForTimeout(3000);
+    await sleep(3000);
 
     console.log("🔎 Waiting for email input...");
     const emailSelector =
       'input[name="email"], input[type="email"], input[placeholder*="Email"]';
 
-    const emailFound = await page.waitForSelector(emailSelector, {
-      timeout: 15000
-    }).then(() => true).catch(() => false);
-
-    if (!emailFound) {
-      await page.screenshot({ path: "email_not_found.png" });
-      await browser.close();
-      await FAIL("Email input not found (screenshot taken)");
-    }
-
-    console.log("✍️ Typing email...");
+    await page.waitForSelector(emailSelector, { timeout: 20000 });
     await page.type(emailSelector, process.env.ALMA_EMAIL, { delay: 60 });
 
     console.log("🔎 Waiting for password input...");
     const passSelector =
       'input[name="password"], input[type="password"], input[placeholder*="Password"]';
 
-    const passFound = await page.waitForSelector(passSelector, {
-      timeout: 15000
-    }).then(() => true).catch(() => false);
-
-    if (!passFound) {
-      await page.screenshot({ path: "password_not_found.png" });
-      await browser.close();
-      await FAIL("Password input not found (screenshot taken)");
-    }
-
-    console.log("✍️ Typing password...");
+    await page.waitForSelector(passSelector, { timeout: 20000 });
     await page.type(passSelector, process.env.ALMA_PASSWORD, { delay: 60 });
 
     console.log("🔐 Submitting login...");
     await page.keyboard.press("Enter");
 
-    await page.waitForTimeout(5000);
-    console.log("✅ Login step passed");
+    await sleep(5000);
+    console.log("✅ Login step finished");
 
     await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: process.env.CHAT_ID,
-        text: "🤖 Almaviva bot: login step completed"
+        text: "🤖 Almaviva bot: login step completed successfully"
       })
     });
 
     console.log("📨 Telegram sent");
 
     await browser.close();
-    console.log("🛑 Bot finished cleanly");
+    console.log("🛑 Bot finished normally");
     process.exit(0);
 
   } catch (err) {
-    console.error("🔥 Fatal error:", err);
+    console.error("❌ Bot crashed:", err);
     process.exit(1);
   }
 })();

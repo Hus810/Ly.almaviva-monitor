@@ -2,6 +2,11 @@ const puppeteer = require("puppeteer");
 const fetch = require("node-fetch");
 
 (async () => {
+  const FAIL = async (msg) => {
+    console.error("❌", msg);
+    process.exit(1);
+  };
+
   try {
     console.log("🚀 Bot starting...");
 
@@ -14,12 +19,13 @@ const fetch = require("node-fetch");
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
 
-    console.log("🌐 Opening Almaviva site...");
-    await page.goto("https://ly.almaviva-visa.services/appointment", {
-      waitUntil: "domcontentloaded"
-    });
+    console.log("🌐 Opening site...");
+    await page.goto(
+      "https://ly.almaviva-visa.services/appointment",
+      { waitUntil: "domcontentloaded", timeout: 30000 }
+    );
 
-    console.log("👤 Clicking login icon...");
+    console.log("👤 Trying to click login icon...");
     await page.evaluate(() => {
       const btn = [...document.querySelectorAll("button, a")]
         .find(el =>
@@ -32,50 +38,63 @@ const fetch = require("node-fetch");
 
     await page.waitForTimeout(3000);
 
+    console.log("🔎 Waiting for email input...");
+    const emailSelector =
+      'input[name="email"], input[type="email"], input[placeholder*="Email"]';
+
+    const emailFound = await page.waitForSelector(emailSelector, {
+      timeout: 15000
+    }).then(() => true).catch(() => false);
+
+    if (!emailFound) {
+      await page.screenshot({ path: "email_not_found.png" });
+      await browser.close();
+      await FAIL("Email input not found (screenshot taken)");
+    }
+
     console.log("✍️ Typing email...");
-    await page.waitForSelector(
-      'input[name="email"], input[type="email"], input[placeholder*="Email"]',
-      { timeout: 30000 }
-    );
-    await page.type(
-      'input[name="email"], input[type="email"], input[placeholder*="Email"]',
-      process.env.ALMA_EMAIL,
-      { delay: 60 }
-    );
+    await page.type(emailSelector, process.env.ALMA_EMAIL, { delay: 60 });
+
+    console.log("🔎 Waiting for password input...");
+    const passSelector =
+      'input[name="password"], input[type="password"], input[placeholder*="Password"]';
+
+    const passFound = await page.waitForSelector(passSelector, {
+      timeout: 15000
+    }).then(() => true).catch(() => false);
+
+    if (!passFound) {
+      await page.screenshot({ path: "password_not_found.png" });
+      await browser.close();
+      await FAIL("Password input not found (screenshot taken)");
+    }
 
     console.log("✍️ Typing password...");
-    await page.waitForSelector(
-      'input[name="password"], input[type="password"], input[placeholder*="Password"]',
-      { timeout: 30000 }
-    );
-    await page.type(
-      'input[name="password"], input[type="password"], input[placeholder*="Password"]',
-      process.env.ALMA_PASSWORD,
-      { delay: 60 }
-    );
+    await page.type(passSelector, process.env.ALMA_PASSWORD, { delay: 60 });
 
     console.log("🔐 Submitting login...");
     await page.keyboard.press("Enter");
 
-    await page.waitForTimeout(6000);
-    console.log("✅ Login submitted");
+    await page.waitForTimeout(5000);
+    console.log("✅ Login step passed");
 
     await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: process.env.CHAT_ID,
-        text: "🤖 Almaviva bot logged in successfully"
+        text: "🤖 Almaviva bot: login step completed"
       })
     });
 
-    console.log("📨 Telegram confirmation sent");
+    console.log("📨 Telegram sent");
 
     await browser.close();
-    console.log("🛑 Bot finished normally");
+    console.log("🛑 Bot finished cleanly");
+    process.exit(0);
 
   } catch (err) {
-    console.error("❌ Bot crashed:", err);
+    console.error("🔥 Fatal error:", err);
     process.exit(1);
   }
 })();

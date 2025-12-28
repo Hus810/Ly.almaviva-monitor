@@ -14,34 +14,38 @@ const PASSWORD = process.env.PASSWORD;
 
   const page = await browser.newPage();
 
-  // الصفحة الرئيسية
+  // 1️⃣ افتح الصفحة الرئيسية
   await page.goto("https://ly.almaviva-visa.services/", {
     waitUntil: "networkidle2",
   });
 
-  // الضغط على أيقونة تسجيل الدخول
-  await page.waitForSelector("button.login-button"); // <-- استبدل بالـ selector الصحيح
-  await page.click("button.login-button");
+  // 2️⃣ اضغط أيقونة الشخص (selector عام يشتغل مع Angular)
+  await page.waitForSelector("button, a", { timeout: 15000 });
+  await page.evaluate(() => {
+    const el = [...document.querySelectorAll("button, a")]
+      .find(e => e.innerText.toLowerCase().includes("login") || e.innerText.includes("دخول"));
+    if (el) el.click();
+  });
 
-  // انتظار ظهور الحقول
-  await page.waitForSelector("input#user_email", { timeout: 10000 });
-  await page.type("input#user_email", EMAIL);
+  // 3️⃣ انتظر حقول تسجيل الدخول
+  await page.waitForSelector("input[type=email]", { timeout: 15000 });
+  await page.type("input[type=email]", EMAIL, { delay: 50 });
 
-  await page.waitForSelector("input#user_password", { timeout: 10000 });
-  await page.type("input#user_password", PASSWORD);
+  await page.waitForSelector("input[type=password]", { timeout: 15000 });
+  await page.type("input[type=password]", PASSWORD, { delay: 50 });
 
-  // الضغط على زر تسجيل الدخول
-  await page.waitForSelector("button[type=submit]");
-  await page.click("button[type=submit]");
+  await page.keyboard.press("Enter");
 
-  // الانتقال لصفحة المواعيد
+  // 4️⃣ بعد تسجيل الدخول
   await page.waitForNavigation({ waitUntil: "networkidle2" });
+
+  // 5️⃣ صفحة المواعيد
   await page.goto("https://ly.almaviva-visa.services/appointment", {
     waitUntil: "networkidle2",
   });
 
-  // فحص مواعيد طرابلس
   const content = await page.content();
+
   const tripoliAvailable =
     content.includes("Tripoli") &&
     !content.includes("No available appointments");
@@ -59,9 +63,6 @@ const PASSWORD = process.env.PASSWORD;
   } else {
     console.log("❌ No Tripoli yet...");
   }
-
-  // Screenshot للتأكد
-  await page.screenshot({ path: "page.png", fullPage: true });
 
   await browser.close();
 })();

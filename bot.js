@@ -9,26 +9,39 @@ const PASSWORD = process.env.PASSWORD;
 (async () => {
   const browser = await puppeteer.launch({
     headless: "new",
-    args: ["--no-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   const page = await browser.newPage();
-  await page.goto("https://ly.almaviva-visa.services/login", {
+
+  // 1️⃣ فتح الصفحة الرئيسية
+  await page.goto("https://ly.almaviva-visa.services/", {
     waitUntil: "networkidle2",
   });
 
-  await page.type("input[type=email]", EMAIL);
-  await page.type("input[type=password]", PASSWORD);
+  // 2️⃣ الضغط على أيقونة تسجيل الدخول (login icon)
+  await page.waitForSelector("button.login-button"); // <-- استبدل هذا بالـ selector الصحيح
+  await page.click("button.login-button");
+
+  // 3️⃣ انتظار ظهور الحقول بعد الضغط
+  await page.waitForSelector("input#user_email", { timeout: 10000 });
+  await page.type("input#user_email", EMAIL);
+
+  await page.waitForSelector("input#user_password", { timeout: 10000 });
+  await page.type("input#user_password", PASSWORD);
+
+  // 4️⃣ الضغط على زر تسجيل الدخول
+  await page.waitForSelector("button[type=submit]");
   await page.click("button[type=submit]");
 
+  // 5️⃣ الانتظار حتى يتم الانتقال لصفحة المواعيد
   await page.waitForNavigation({ waitUntil: "networkidle2" });
-
   await page.goto("https://ly.almaviva-visa.services/appointment", {
     waitUntil: "networkidle2",
   });
 
+  // 6️⃣ أخذ محتوى الصفحة وفحص مواعيد طرابلس
   const content = await page.content();
-
   const tripoliAvailable =
     content.includes("Tripoli") &&
     !content.includes("No available appointments");
@@ -42,7 +55,13 @@ const PASSWORD = process.env.PASSWORD;
         text: "🚨 فتح موعد في طرابلس! ادخل الموقع فورًا",
       }),
     });
+    console.log("🚨 Tripoli AVAILABLE!");
+  } else {
+    console.log("❌ No Tripoli yet...");
   }
+
+  // 7️⃣ أخذ screenshot (اختياري للتأكد من ظهور الصفحة)
+  await page.screenshot({ path: "page.png", fullPage: true });
 
   await browser.close();
 })();

@@ -5,7 +5,6 @@ const fetch = require("node-fetch");
   try {
     console.log("🚀 Bot starting...");
 
-    // 1️⃣ إطلاق المتصفح
     const browser = await puppeteer.launch({
       headless: "new",
       executablePath: "/usr/bin/chromium-browser",
@@ -15,47 +14,68 @@ const fetch = require("node-fetch");
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
 
-    // 2️⃣ فتح الموقع
+    console.log("🌐 Opening Almaviva site...");
     await page.goto("https://ly.almaviva-visa.services/appointment", {
-      waitUntil: "networkidle2"
+      waitUntil: "domcontentloaded"
     });
 
-    // 3️⃣ الضغط على أيقونة تسجيل الدخول
+    console.log("👤 Clicking login icon...");
     await page.evaluate(() => {
-      const btn = [...document.querySelectorAll("button")]
-        .find(el => el.innerText.includes("Login") || el.innerText.includes("👤"));
+      const btn = [...document.querySelectorAll("button, a")]
+        .find(el =>
+          el.innerText &&
+          (el.innerText.toLowerCase().includes("login") ||
+           el.innerText.includes("👤"))
+        );
       if (btn) btn.click();
     });
 
-    await page.waitForTimeout(2000); // 2 ثانية انتظار للـ DOM
+    await page.waitForTimeout(3000);
 
-    // 4️⃣ الانتظار وكتابة الإيميل
-    await page.waitForSelector('input[name="email"], input[placeholder*="Email"]', { timeout: 30000 });
-    await page.type('input[name="email"]', process.env.ALMA_EMAIL, { delay: 50 });
+    console.log("✍️ Typing email...");
+    await page.waitForSelector(
+      'input[name="email"], input[type="email"], input[placeholder*="Email"]',
+      { timeout: 30000 }
+    );
+    await page.type(
+      'input[name="email"], input[type="email"], input[placeholder*="Email"]',
+      process.env.ALMA_EMAIL,
+      { delay: 60 }
+    );
 
-    // 5️⃣ الانتظار وكتابة الباسوورد
-    await page.waitForSelector('input[name="password"], input[placeholder*="Password"]', { timeout: 30000 });
-    await page.type('input[name="password"]', process.env.ALMA_PASSWORD, { delay: 50 });
+    console.log("✍️ Typing password...");
+    await page.waitForSelector(
+      'input[name="password"], input[type="password"], input[placeholder*="Password"]',
+      { timeout: 30000 }
+    );
+    await page.type(
+      'input[name="password"], input[type="password"], input[placeholder*="Password"]',
+      process.env.ALMA_PASSWORD,
+      { delay: 60 }
+    );
 
-    // 6️⃣ زر الدخول (Enter)
+    console.log("🔐 Submitting login...");
     await page.keyboard.press("Enter");
-    await page.waitForNavigation({ waitUntil: "networkidle2" });
 
-    console.log("✅ Logged in successfully");
+    await page.waitForTimeout(6000);
+    console.log("✅ Login submitted");
 
-    // 7️⃣ رسالة تيليجرام للتأكيد
     await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: process.env.CHAT_ID,
-        text: "🤖 Almaviva bot started and logged in successfully"
+        text: "🤖 Almaviva bot logged in successfully"
       })
     });
 
-    // 👇 لاحقًا: نضيف اختيار Tripoli + التحقق من السهم الأزرق
+    console.log("📨 Telegram confirmation sent");
 
     await browser.close();
     console.log("🛑 Bot finished normally");
 
   } catch (err) {
+    console.error("❌ Bot crashed:", err);
+    process.exit(1);
+  }
+})();
